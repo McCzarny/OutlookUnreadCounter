@@ -2,7 +2,10 @@ name: Build Plugin
 
 on:
   push:
-    branches: [ main, ci ]
+    branches: [ main, ci ]    
+    tags:
+      - 'v*'
+
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -15,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
           
@@ -34,3 +37,8 @@ jobs:
           name: com.mcczarny.outlookunreadcounter.streamDeckPlugin
           path: releases/*
 
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: releases/*
