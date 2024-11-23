@@ -1,0 +1,47 @@
+{
+  "Actions": [
+    {
+      "UUID": "com.mcczarny.outlookunreadcounter.unreadcounter",
+      "Icon": "assets/unread_counter/envelope_icon",
+      "Name": "Outlook Unread Counter",
+      "States": [
+        {
+          "Image": "assets/unread_counter/envelope_open_icon",
+          "Name": "READ",
+          "TitleAlignment": "middle"
+        },
+        {
+          "Image": "assets/unread_counter/envelope_closed_icon",
+          "NAME": "UNREAD",
+          "TitleAlignment": "middle"
+        }
+      ],
+      "PropertyInspectorPath": "property_inspector/unread_counter_pi.html",
+      "SupportedInMultiActions": true,
+      "Controllers": [
+        "Keypad"
+      ],
+      "Tooltip": "Shows the number of unread emails in Outlook.",
+      "UserTitleEnabled": true
+    }
+  ],
+  "Author": "Maciej Czarnecki",
+  "CodePath": "run.sh",
+  "Description": "Windows Outlook unread messages counter.",
+  "Icon": "assets/plugin_icon",
+  "Name": "Outlook Unread Counter",
+  "Version": "0.0.62",
+  "SDKVersion": 2,
+  "OS": [
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "Software": {
+    "MinimumVersion": "6"
+  },
+  "Category": "Outlook",
+  "CategoryIcon": "assets/category_icon",
+  "CodePathWin": "run.bat"
+}

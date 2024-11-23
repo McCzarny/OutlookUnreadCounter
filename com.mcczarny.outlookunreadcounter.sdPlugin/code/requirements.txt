@@ -1,0 +1,2 @@
+streamdeck-sdk>=1.2.0
+pywin32==308
