@@ -1,3 +1,9 @@
+<p align="center">
+    <a>
+        <img src="./com.mcczarny.outlookunreadcounter.sdPlugin/assets/unread_counter/envelope_closed_icon.svg" alt="Outlook Unread Counter" width="200">
+    </a>
+</p>
+
 # Outlook Unread Counter - Stream Deck Plugin
 
 A Stream Deck plugin that displays the number of unread emails from Microsoft Outlook directly on your Stream Deck.
