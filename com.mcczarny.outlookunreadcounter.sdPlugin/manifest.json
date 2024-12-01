@@ -28,9 +28,9 @@
   "Author": "Maciej Czarnecki",
   "CodePath": "run.sh",
   "Description": "Windows Outlook unread messages counter.",
-  "Icon": "assets/plugin_icon",
+  "Icon": "assets/unread_counter/envelope_open_icon",
   "Name": "Outlook Unread Counter",
-  "Version": "0.0.62",
+  "Version": "0.0.68",
   "SDKVersion": 2,
   "OS": [
     {
@@ -41,7 +41,7 @@
   "Software": {
     "MinimumVersion": "6"
   },
-  "Category": "Outlook",
-  "CategoryIcon": "assets/category_icon",
+  "Category": "Mail",
+  "CategoryIcon": "assets/unread_counter/envelope_open_icon",
   "CodePathWin": "run.bat"
 }

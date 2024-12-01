@@ -3,3 +3,4 @@ com.mcczarny.outlookunreadcounter.sdPlugin/code/venv
 com.mcczarny.outlookunreadcounter.sdPlugin/logs
 *.pyc
 releases
+venv
