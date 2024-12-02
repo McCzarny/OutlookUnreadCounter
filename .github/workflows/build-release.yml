@@ -28,19 +28,17 @@ jobs:
       - name: Install sdk cli
         run: |
           pip install streamdeck-sdk-cli
-      
-      - name: Create and activate virtual environment
-        run: |          
-          python -m venv venv
-          .\venv\Scripts\activate
           
       - name: Install dependencies
         run: |
+          python -m venv venv
+          .\venv\Scripts\activate
           python -m pip install --upgrade pip
           pip install streamdeck-sdk
           
       - name: Build Stream Deck plugin
         run: |
+          .\venv\Scripts\activate
           streamdeck_sdk build -i com.mcczarny.outlookunreadcounter.sdPlugin
           
       - name: Upload artifact
