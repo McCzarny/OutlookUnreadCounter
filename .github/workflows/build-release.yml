@@ -26,8 +26,8 @@ jobs:
           python-version: '3.x'
 
       - name: Install sdk cli
-      run: |
-        pip install streamdeck-sdk-cli
+        run: |
+          pip install streamdeck-sdk-cli
       
       - name: Create and activate virtual environment
         run: |          
