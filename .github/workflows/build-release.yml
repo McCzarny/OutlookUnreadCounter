@@ -24,11 +24,20 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+
+      - name: Install sdk cli
+      run: |
+        pip install streamdeck-sdk-cli
+      
+      - name: Create and activate virtual environment
+        run: |          
+          python -m venv venv
+          .\venv\Scripts\activate
           
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install streamdeck-sdk streamdeck-sdk-cli
+          pip install streamdeck-sdk
           
       - name: Build Stream Deck plugin
         run: |
