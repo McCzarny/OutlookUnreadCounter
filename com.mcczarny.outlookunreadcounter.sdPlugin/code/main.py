@@ -43,7 +43,6 @@ class UnreadCounter(Action):
 
     def update_unread_count(self, outlook, context: str, account: str):
         logger.debug(f"update_unread_count: {context} account: {account}")
-        self.set_title(context=context, title=f"Loading...")
         unread_count = "?"
         if account:
             logger.debug(f"account: {account}")
@@ -83,10 +82,13 @@ class UnreadCounter(Action):
                 try:
                     logger.debug(f"run_monitoring: {context} {account}")
                     self.update_unread_count(outlook=self.monitor_outlook, context=context, account=account)
+                except win32com.client.pywintypes.com_error as err:
+                    logger.exception(err)
+                    logger.debug(f"run_monitoring: {context} {account} - restarting monitoring")
+                    self.monitor_outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
                 except Exception as err:
                     logger.exception(err)
             self.wake_event.clear()
-
 
 if __name__ == "__main__":
     unread_counter = UnreadCounter()
