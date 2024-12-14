@@ -19,9 +19,9 @@
         <select class="sdpi-item-value" id="account" setting="account" placeholder="Choose account" onchange="account_changed()">
         </select>
     </div>
-    <div class="sdpi-item" label="Second row content">
-        <div class="sdpi-item-label">Second row content</div>
-        <select class="sdpi-item-value" id="second_row" setting="second_row" placeholder="Choose second row content" onchange="second_row_changed()">
+    <div class="sdpi-item" label="Extra info content">
+        <div class="sdpi-item-label">Include extra information</div>
+        <select class="sdpi-item-value" id="extra_info" setting="extra_info" placeholder="Choose extra info" onchange="extra_info_changed()">
         </select>
     </div>
 </div>
@@ -42,11 +42,11 @@
 
     const ACCOUNT_KEY = 'account'
     const ACCOUNTS_KEY = 'accounts'
-    const SECOND_ROW_KEY = 'second_row'
-    const SECOND_ROW_STATES_KEY = 'second_row_states'
+    const EXTRA_INFO_KEY = 'extra_info'
+    const EXTRA_INFO_STATES_KEY = 'extra_info_states'
 
     const account_el = document.getElementById(ACCOUNT_KEY)
-    const second_row_el = document.getElementById(SECOND_ROW_KEY)
+    const extra_info_el = document.getElementById(EXTRA_INFO_KEY)
 
     function account_changed() {
         console.log('account_changed', account_el.value);
@@ -54,9 +54,9 @@
         $PI.setSettings(settings);
     }
 
-    function second_row_changed() {
-        console.log('second_row_changed', second_row_el.value);
-        settings[SECOND_ROW_KEY] = second_row_el.value
+    function extra_info_changed() {
+        console.log('extra_info_changed', extra_info_el.value);
+        settings[EXTRA_INFO_KEY] = extra_info_el.value
         $PI.setSettings(settings);
     }
 
@@ -68,12 +68,12 @@
             update_select_options(account_el, account_options, account_selected)
         }
 
-        let second_row_options = settings[SECOND_ROW_STATES_KEY]
-        let second_row_selected = settings[SECOND_ROW_KEY]
+        let extra_info_options = settings[EXTRA_INFO_STATES_KEY]
+        let extra_info_selected = settings[EXTRA_INFO_KEY]
 
-        if (second_row_options !== undefined && second_row_selected !== undefined)
+        if (extra_info_options !== undefined && extra_info_selected !== undefined)
         {
-            update_select_options(second_row_el, second_row_options, second_row_selected)
+            update_select_options(extra_info_el, extra_info_options, extra_info_selected)
         }
     }
 
@@ -82,9 +82,9 @@
         account_changed();
     });
 
-    second_row_el.addEventListener('change', () => {
-        console.log('second_row_el.value changed', second_row_el.value);
-        second_row_changed();
+    extra_info_el.addEventListener('change', () => {
+        console.log('extra_info_el.value changed', extra_info_el.value);
+        extra_info_changed();
     });
 
     let settings
