@@ -85,7 +85,8 @@ class UnreadCounter(Action):
                     sender_name = last_unread_email.SenderName
                     if len(sender_name) > self.EXTRA_INFO_MAX_LENGTH:
                         logger.debug(f"sender name ({sender_name}) is too long, truncating...")
-                        sender_name = sender_name[:self.EXTRA_INFO_MAX_LENGTH - 3] + "..."
+                        # Using vertical ellipsis to save space while indicating that the text is truncated
+                        sender_name = sender_name[:self.EXTRA_INFO_MAX_LENGTH] + "⋮"
                     extra_info = sender_name
                 if self.context_to_extra_info[context] == ExtraInfoStates.SUBJECT \
                     or self.context_to_extra_info[context] == ExtraInfoStates.BOTH:
