@@ -15,7 +15,13 @@
 <body>
 <div class="sdpi-wrapper">
     <div class="sdpi-item" label="Outlook account">
+        <div class="sdpi-item-label">Outlook account</div>
         <select class="sdpi-item-value" id="account" setting="account" placeholder="Choose account" onchange="account_changed()">
+        </select>
+    </div>
+    <div class="sdpi-item" label="Second row content">
+        <div class="sdpi-item-label">Second row content</div>
+        <select class="sdpi-item-value" id="second_row" setting="second_row" placeholder="Choose second row content" onchange="second_row_changed()">
         </select>
     </div>
 </div>
@@ -34,19 +40,51 @@
     // SDPIComponents.streamDeckClient.didReceiveGlobalSettings.subscribe(console.log);
     console.log('Property Inspector loaded', $PI);
 
-    const my_message_el = document.getElementById("my_message")
-    const account_el = document.getElementById("account")
+    const ACCOUNT_KEY = 'account'
+    const ACCOUNTS_KEY = 'accounts'
+    const SECOND_ROW_KEY = 'second_row'
+    const SECOND_ROW_STATES_KEY = 'second_row_states'
+
+    const account_el = document.getElementById(ACCOUNT_KEY)
+    const second_row_el = document.getElementById(SECOND_ROW_KEY)
 
     function account_changed() {
         console.log('account_changed', account_el.value);
-        settings["account"] = account_el.value
+        settings[ACCOUNT_KEY] = account_el.value
         $PI.setSettings(settings);
     }
 
-    // When account_el.value changes, update the settings
+    function second_row_changed() {
+        console.log('second_row_changed', second_row_el.value);
+        settings[SECOND_ROW_KEY] = second_row_el.value
+        $PI.setSettings(settings);
+    }
+
+    function update_inputs(settings) {
+        let account_options = settings[ACCOUNTS_KEY]
+        let account_selected = settings[ACCOUNT_KEY]
+        if (account_options !==  undefined && account_selected !== undefined)
+        {
+            update_select_options(account_el, account_options, account_selected)
+        }
+
+        let second_row_options = settings[SECOND_ROW_STATES_KEY]
+        let second_row_selected = settings[SECOND_ROW_KEY]
+
+        if (second_row_options !== undefined && second_row_selected !== undefined)
+        {
+            update_select_options(second_row_el, second_row_options, second_row_selected)
+        }
+    }
+
     account_el.addEventListener('change', () => {
         console.log('account_el.value changed', account_el.value);
         account_changed();
+    });
+
+    second_row_el.addEventListener('change', () => {
+        console.log('second_row_el.value changed', second_row_el.value);
+        second_row_changed();
     });
 
     let settings
@@ -55,26 +93,7 @@
         console.log('Property Inspector connected', jsn);
         console.log(jsn.actionInfo.payload.settings);
         settings = jsn.actionInfo.payload.settings;
-        account_el.innerHTML = `${account_el.innerHTML}<option class="sdpi-item-value" value="${Object.keys(settings)}">${Object.keys(settings)}</option>`
-
-        if (settings["accounts"] !== undefined) {
-            console.log(`Accounts: ${settings["accounts"]}`)
-            try {
-                account_el.innerHTML = settings["accounts"]
-                    .map(line => line.trim())
-                    .filter(line => line)
-                    .map(line => `<option value="${line}">${line}</option>`)
-                    .join('');
-            } catch (e) {
-                console.log(`Error: ${e}`)
-            }
-        }
-
-        console.debug(`Account value: ${account_el.value}`)
-        if (settings["account"] !== undefined) {
-            console.debug(`Account: ${settings["account"]}`)
-            account_el.value = settings["account"];
-        }
+        update_inputs(settings);
 
         $PI.setSettings(settings);
     });
@@ -83,19 +102,7 @@
         console.log('onDidReceiveSettings', jsn);
         settings = jsn.payload.settings
 
-        if (settings["accounts"] !== undefined) {
-            account_el.innerHTML = settings["accounts"]
-            .map(line => line.trim())
-            .filter(line => line)
-            .map(line => `<option value="${line}">${line}</option>`)
-            .join('\n');
-        }
-
-        console.debug(`Account value: ${account_el.value}`)
-        if (settings["account"] !== undefined) {
-            console.debug(`Account: ${settings["account"]}`)
-            account_el.value = settings["account"];
-        }
+        update_inputs(settings);
     });
 
     function get_select_values_and_selected(element) {
@@ -126,11 +133,6 @@
             selected_value = "null";
         }
 
-        const nullOption = document.createElement('option');
-        nullOption.value = "null";
-        nullOption.text = "";
-        element.appendChild(nullOption);
-
         values.forEach(value => {
             if (value === null) {
                 return;
@@ -145,7 +147,7 @@
             element.value = selected_value;
             return true
         } else {
-            element.value = "null";
+            element.value = values.length > 0 ? values[0] : "null";
             return false
         }
     }
