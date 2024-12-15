@@ -10,11 +10,13 @@ class MailStates(IntEnum):
     READ = 0
     UNREAD = 1
 
+
 class ExtraInfoStates(str, Enum):
     NONE = "None"
     SENDER = "Sender"
     SUBJECT = "Subject"
     BOTH = "Both"
+
 
 class UnreadCounter(Action):
 
@@ -41,7 +43,7 @@ class UnreadCounter(Action):
         if self.ACCOUNT_KEY in settings:
             logger.debug(f"[{context}] Using account from the settings: {settings.get(self.ACCOUNT_KEY)}")
             self.context_to_account[context] = settings.get(self.ACCOUNT_KEY)
-        
+
         if self.EXTRA_INFO_KEY in settings:
             logger.debug(f"[{context}] Using {self.EXTRA_INFO_KEY} from the settings: {settings.get(self.EXTRA_INFO_KEY)}")
             self.context_to_extra_info[context] = settings.get(self.EXTRA_INFO_KEY)
@@ -49,11 +51,9 @@ class UnreadCounter(Action):
         if context not in self.context_to_account or self.context_to_account[context] not in accounts:
             self.context_to_account[context] = accounts[0] if len(accounts) > 0 else ""
             logger.debug(f"[{context}] Setting account to: {self.context_to_account[context]}")
-        
+
         if context not in self.context_to_extra_info or self.context_to_extra_info[context] not in [state.value for state in ExtraInfoStates]:
-            logger.debug(
-                f"[{context}] Setting {self.EXTRA_INFO_KEY} to: {ExtraInfoStates.NONE}."
-                + f"Old value: {self.context_to_extra_info.get(context)}")
+            logger.debug(f"[{context}] Setting {self.EXTRA_INFO_KEY} to: {ExtraInfoStates.NONE}." + f"Old value: {self.context_to_extra_info.get(context)}")
             self.context_to_extra_info[context] = ExtraInfoStates.NONE
         payload = {
             self.ACCOUNT_KEY: self.context_to_account[context],
@@ -62,6 +62,7 @@ class UnreadCounter(Action):
             self.EXTRA_INFO_STATES_KEY: [state.value for state in ExtraInfoStates],
         }
         self.set_settings(context=context, payload=payload)
+
     @log_errors
     def on_will_appear(self, obj: events_received_objs.WillAppear):
         logger.debug(f"on_will_appear: {obj.context}")
@@ -78,25 +79,23 @@ class UnreadCounter(Action):
         if unread_count > 0:
             logger.debug(f"Unread count is bigger than 0, processing extra info...")
             try:
-                last_unread_email = folder.Items.Restrict('[UnRead] = True').GetLast()
-                if self.context_to_extra_info[context] == ExtraInfoStates.SENDER \
-                    or self.context_to_extra_info[context] == ExtraInfoStates.BOTH:
+                last_unread_email = folder.Items.Restrict("[UnRead] = True").GetLast()
+                if self.context_to_extra_info[context] == ExtraInfoStates.SENDER or self.context_to_extra_info[context] == ExtraInfoStates.BOTH:
                     logger.debug(f"sender")
                     sender_name = last_unread_email.SenderName
                     if len(sender_name) > self.EXTRA_INFO_MAX_LENGTH:
                         logger.debug(f"sender name ({sender_name}) is too long, truncating...")
                         # Using vertical ellipsis to save space while indicating that the text is truncated
-                        sender_name = sender_name[:self.EXTRA_INFO_MAX_LENGTH] + "⋮"
+                        sender_name = sender_name[: self.EXTRA_INFO_MAX_LENGTH - 3] + "..."
                     extra_info = sender_name
-                if self.context_to_extra_info[context] == ExtraInfoStates.SUBJECT \
-                    or self.context_to_extra_info[context] == ExtraInfoStates.BOTH:
+                if self.context_to_extra_info[context] == ExtraInfoStates.SUBJECT or self.context_to_extra_info[context] == ExtraInfoStates.BOTH:
                     logger.debug(f"subject")
                     if extra_info != "":
                         extra_info += "\n"
                     subject = last_unread_email.Subject
                     if len(subject) > self.EXTRA_INFO_MAX_LENGTH:
                         logger.debug(f"subject ({subject}) is too long, truncating...")
-                        subject = subject[:self.EXTRA_INFO_MAX_LENGTH - 3] + "..."
+                        subject = subject[: self.EXTRA_INFO_MAX_LENGTH - 3] + "..."
                     extra_info += subject
             except Exception as e:
                 logger.error(f"Error getting extra info: {e}")
@@ -116,7 +115,7 @@ class UnreadCounter(Action):
         if obj.payload.settings.get(self.ACCOUNT_KEY):
             self.context_to_account[obj.context] = obj.payload.settings.get(self.ACCOUNT_KEY)
             update_tiles = True
-        
+
         if obj.payload.settings.get(self.EXTRA_INFO_KEY):
             self.context_to_extra_info[obj.context] = obj.payload.settings.get(self.EXTRA_INFO_KEY)
             update_tiles = True
@@ -151,6 +150,7 @@ class UnreadCounter(Action):
                 except Exception as err:
                     logger.exception(err)
             self.wake_event.clear()
+
 
 if __name__ == "__main__":
     unread_counter = UnreadCounter()
