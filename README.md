@@ -18,6 +18,7 @@ No password needed as it uses MAPI to connect to Outlook.
   - Open envelope icon for no unread messages
 - Auto-refresh every 10 seconds
 - Manual refresh on button press
+- Possibility to display sender and/or subject of the last unread message
 
 ## Requirements
 
@@ -32,7 +33,7 @@ No password needed as it uses MAPI to connect to Outlook.
 2. Install the plugin using the generated file in `releases` directory
 
 ### Install from releases
-1. TODO
+1. Download the latest release from the [releases page](https://github.com/McCzarny/OutlookUnreadCounter/releases)
 
 ## Usage
 
