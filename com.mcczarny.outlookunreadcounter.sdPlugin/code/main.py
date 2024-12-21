@@ -1,6 +1,7 @@
 import settings
 import threading
 from enum import IntEnum, Enum
+from dataclasses import dataclass
 
 from streamdeck_sdk import StreamDeck, Action, events_received_objs, logger, log_errors, in_separate_thread
 import win32com.client
@@ -18,6 +19,14 @@ class ExtraInfoStates(str, Enum):
     BOTH = "Both"
 
 
+@dataclass
+class ContextData:
+    account: str
+    extra_info: ExtraInfoStates
+    animated: bool = False
+    animation_index: int = 1
+
+
 class UnreadCounter(Action):
 
     UUID = "com.mcczarny.outlookunreadcounter.unreadcounter"
@@ -33,32 +42,24 @@ class UnreadCounter(Action):
     outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
     monitor_outlook = None
     context = ""
-    context_to_account = {}
-    context_to_extra_info = {}
+    context_data = {}  # Will store ContextData objects
 
     def set_accounts_settings(self, context: str, settings: dict):
         logger.debug(f"[{context}] set_accounts_settings: {settings}")
         accounts = [acc.DisplayName for acc in self.outlook.Stores]
-        logger.debug(f"[{context}] accounts: {accounts}")
-        if self.ACCOUNT_KEY in settings:
-            logger.debug(f"[{context}] Using account from the settings: {settings.get(self.ACCOUNT_KEY)}")
-            self.context_to_account[context] = settings.get(self.ACCOUNT_KEY)
 
-        if self.EXTRA_INFO_KEY in settings:
-            logger.debug(f"[{context}] Using {self.EXTRA_INFO_KEY} from the settings: {settings.get(self.EXTRA_INFO_KEY)}")
-            self.context_to_extra_info[context] = settings.get(self.EXTRA_INFO_KEY)
+        current_account = settings.get(self.ACCOUNT_KEY) if self.ACCOUNT_KEY in settings else accounts[0] if accounts else ""
+        current_extra_info = settings.get(self.EXTRA_INFO_KEY, ExtraInfoStates.NONE)
 
-        if context not in self.context_to_account or self.context_to_account[context] not in accounts:
-            self.context_to_account[context] = accounts[0] if len(accounts) > 0 else ""
-            logger.debug(f"[{context}] Setting account to: {self.context_to_account[context]}")
+        if current_extra_info not in [state.value for state in ExtraInfoStates]:
+            current_extra_info = ExtraInfoStates.NONE
 
-        if context not in self.context_to_extra_info or self.context_to_extra_info[context] not in [state.value for state in ExtraInfoStates]:
-            logger.debug(f"[{context}] Setting {self.EXTRA_INFO_KEY} to: {ExtraInfoStates.NONE}." + f"Old value: {self.context_to_extra_info.get(context)}")
-            self.context_to_extra_info[context] = ExtraInfoStates.NONE
+        self.context_data[context] = ContextData(account=current_account, extra_info=current_extra_info)
+
         payload = {
-            self.ACCOUNT_KEY: self.context_to_account[context],
+            self.ACCOUNT_KEY: self.context_data[context].account,
             self.ACCOUNTS_KEY: accounts,
-            self.EXTRA_INFO_KEY: self.context_to_extra_info[context],
+            self.EXTRA_INFO_KEY: self.context_data[context].extra_info,
             self.EXTRA_INFO_STATES_KEY: [state.value for state in ExtraInfoStates],
         }
         self.set_settings(context=context, payload=payload)
@@ -66,21 +67,28 @@ class UnreadCounter(Action):
     @log_errors
     def on_will_appear(self, obj: events_received_objs.WillAppear):
         logger.debug(f"on_will_appear: {obj.context}")
+        self.set_title(context=obj.context, title="Loading...")
+        self.set_state(context=obj.context, state=MailStates.UNREAD)
+
         self.set_accounts_settings(obj.context, obj.payload.settings)
 
-    def update_unread_count(self, outlook, context: str, account: str):
-        logger.debug(f"update_unread_count: {context} account: {account}")
+    def update_unread_count(self, outlook, context: str):
+        data = self.context_data[context]
+        logger.debug(f"update_unread_count: {context} account: {data.account}")
+        if not data.account:
+            logger.debug(f"No account set, skipping...")
+            return
         unread_count = "?"
         extra_info = ""
-        folder = outlook.Stores(account).GetDefaultFolder(6) if account else outlook.GetDefaultFolder(6)
+        folder = outlook.Stores(data.account).GetDefaultFolder(6) if data.account else outlook.GetDefaultFolder(6)
 
-        logger.debug(f"account: {account}")
+        logger.debug(f"account: {data.account}")
         unread_count = folder.UnReadItemCount
         if unread_count > 0:
             logger.debug(f"Unread count is bigger than 0, processing extra info...")
             try:
                 last_unread_email = folder.Items.Restrict("[UnRead] = True").GetLast()
-                if self.context_to_extra_info[context] == ExtraInfoStates.SENDER or self.context_to_extra_info[context] == ExtraInfoStates.BOTH:
+                if data.extra_info in [ExtraInfoStates.SENDER, ExtraInfoStates.BOTH]:
                     logger.debug(f"sender")
                     sender_name = last_unread_email.SenderName
                     if len(sender_name) > self.EXTRA_INFO_MAX_LENGTH:
@@ -88,7 +96,7 @@ class UnreadCounter(Action):
                         # Using vertical ellipsis to save space while indicating that the text is truncated
                         sender_name = sender_name[: self.EXTRA_INFO_MAX_LENGTH - 3] + "..."
                     extra_info = sender_name
-                if self.context_to_extra_info[context] == ExtraInfoStates.SUBJECT or self.context_to_extra_info[context] == ExtraInfoStates.BOTH:
+                if data.extra_info in [ExtraInfoStates.SUBJECT, ExtraInfoStates.BOTH]:
                     logger.debug(f"subject")
                     if extra_info != "":
                         extra_info += "\n"
@@ -113,11 +121,11 @@ class UnreadCounter(Action):
         logger.debug(f"on_did_receive_settings: {obj.payload}")
         update_tiles = False
         if obj.payload.settings.get(self.ACCOUNT_KEY):
-            self.context_to_account[obj.context] = obj.payload.settings.get(self.ACCOUNT_KEY)
+            self.context_data[obj.context].account = obj.payload.settings.get(self.ACCOUNT_KEY)
             update_tiles = True
 
         if obj.payload.settings.get(self.EXTRA_INFO_KEY):
-            self.context_to_extra_info[obj.context] = obj.payload.settings.get(self.EXTRA_INFO_KEY)
+            self.context_data[obj.context].extra_info = obj.payload.settings.get(self.EXTRA_INFO_KEY)
             update_tiles = True
 
         if update_tiles:
@@ -138,14 +146,14 @@ class UnreadCounter(Action):
         self.monitor_outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
         while True:
             self.wake_event.wait(timeout=self.MAIL_COUNT_UPDATE_INTERVAL)
-            for context in self.context_to_account:
-                account = self.context_to_account.get(context)
+            for context in self.context_data:
+                data = self.context_data.get(context)
                 try:
-                    logger.debug(f"run_monitoring: {context} {account}")
-                    self.update_unread_count(outlook=self.monitor_outlook, context=context, account=account)
+                    logger.debug(f"run_monitoring: {context} {data.account}")
+                    self.update_unread_count(outlook=self.monitor_outlook, context=context)
                 except win32com.client.pywintypes.com_error as err:
                     logger.exception(err)
-                    logger.debug(f"run_monitoring: {context} {account} - restarting monitoring")
+                    logger.debug(f"run_monitoring: {context} {data.account} - restarting monitoring")
                     self.monitor_outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
                 except Exception as err:
                     logger.exception(err)
