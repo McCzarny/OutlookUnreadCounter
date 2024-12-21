@@ -38,8 +38,14 @@ class UnreadCounter(Action):
 
         if current_extra_info not in [state.value for state in ExtraInfoStates]:
             current_extra_info = ExtraInfoStates.NONE
+        else:
+            current_extra_info = ExtraInfoStates(current_extra_info)
 
-        self.context_data[context] = ContextData(account=current_account, extra_info=current_extra_info)
+        if context not in self.context_data:
+            self.context_data[context] = ContextData(account=current_account, extra_info=current_extra_info)
+        else:
+            self.context_data[context].account = current_account
+            self.context_data[context].extra_info = current_extra_info
 
         payload = {
             self.ACCOUNT_KEY: self.context_data[context].account,
@@ -48,6 +54,7 @@ class UnreadCounter(Action):
             self.EXTRA_INFO_STATES_KEY: [state.value for state in ExtraInfoStates],
         }
         self.set_settings(context=context, payload=payload)
+        self.wake_event.set()
 
     @log_errors
     def on_will_appear(self, obj: events_received_objs.WillAppear):
@@ -56,6 +63,30 @@ class UnreadCounter(Action):
         self.set_state(context=obj.context, state=MailStates.UNREAD)
 
         self.set_accounts_settings(obj.context, obj.payload.settings)
+
+    def get_extra_info(self, data: ContextData, folder: win32com.client.CDispatch):
+        logger.debug(f"Unread count is bigger than 0, processing extra info...")
+        try:
+            last_unread_email = folder.Items.Restrict("[UnRead] = True").GetLast()
+            if data.extra_info in [ExtraInfoStates.SENDER, ExtraInfoStates.BOTH]:
+                logger.debug(f"sender")
+                sender_name = last_unread_email.SenderName
+                if len(sender_name) > self.EXTRA_INFO_MAX_LENGTH:
+                    logger.debug(f"sender name ({sender_name}) is too long, truncating...")
+                    sender_name = sender_name[: self.EXTRA_INFO_MAX_LENGTH - 3] + "..."
+                extra_info = sender_name
+            if data.extra_info in [ExtraInfoStates.SUBJECT, ExtraInfoStates.BOTH]:
+                logger.debug(f"subject")
+                if extra_info != "":
+                    extra_info += "\n"
+                subject = last_unread_email.Subject
+                if len(subject) > self.EXTRA_INFO_MAX_LENGTH:
+                    logger.debug(f"subject ({subject}) is too long, truncating...")
+                    subject = subject[: self.EXTRA_INFO_MAX_LENGTH - 3] + "..."
+                extra_info += subject
+        except Exception as e:
+            logger.error(f"Error getting extra info: {e}")
+        logger.debug(f"extra_info: [{extra_info}]")
 
     def update_unread_count(self, outlook, context: str):
         data = self.context_data[context]
@@ -70,29 +101,8 @@ class UnreadCounter(Action):
         logger.debug(f"account: {data.account}")
         unread_count = folder.UnReadItemCount
         if unread_count > 0:
-            logger.debug(f"Unread count is bigger than 0, processing extra info...")
-            try:
-                last_unread_email = folder.Items.Restrict("[UnRead] = True").GetLast()
-                if data.extra_info in [ExtraInfoStates.SENDER, ExtraInfoStates.BOTH]:
-                    logger.debug(f"sender")
-                    sender_name = last_unread_email.SenderName
-                    if len(sender_name) > self.EXTRA_INFO_MAX_LENGTH:
-                        logger.debug(f"sender name ({sender_name}) is too long, truncating...")
-                        # Using vertical ellipsis to save space while indicating that the text is truncated
-                        sender_name = sender_name[: self.EXTRA_INFO_MAX_LENGTH - 3] + "..."
-                    extra_info = sender_name
-                if data.extra_info in [ExtraInfoStates.SUBJECT, ExtraInfoStates.BOTH]:
-                    logger.debug(f"subject")
-                    if extra_info != "":
-                        extra_info += "\n"
-                    subject = last_unread_email.Subject
-                    if len(subject) > self.EXTRA_INFO_MAX_LENGTH:
-                        logger.debug(f"subject ({subject}) is too long, truncating...")
-                        subject = subject[: self.EXTRA_INFO_MAX_LENGTH - 3] + "..."
-                    extra_info += subject
-            except Exception as e:
-                logger.error(f"Error getting extra info: {e}")
-            logger.debug(f"extra_info: [{extra_info}]")
+            extra_info = self.get_extra_info(data, folder) if data.extra_info != ExtraInfoStates.NONE else ""
+
         state = MailStates.UNREAD if unread_count > 0 else MailStates.READ
         logger.debug(f"unread_count: {unread_count} extra_info: {extra_info} state: {state}")
         self.set_state(context=context, state=state)
