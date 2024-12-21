@@ -1,30 +1,15 @@
 import settings
 import threading
-from enum import IntEnum, Enum
-from dataclasses import dataclass
+from enum import IntEnum
 
 from streamdeck_sdk import StreamDeck, Action, events_received_objs, logger, log_errors, in_separate_thread
 import win32com.client
+from context_data import ExtraInfoStates, ContextData
 
 
 class MailStates(IntEnum):
     READ = 0
     UNREAD = 1
-
-
-class ExtraInfoStates(str, Enum):
-    NONE = "None"
-    SENDER = "Sender"
-    SUBJECT = "Subject"
-    BOTH = "Both"
-
-
-@dataclass
-class ContextData:
-    account: str
-    extra_info: ExtraInfoStates
-    animated: bool = False
-    animation_index: int = 1
 
 
 class UnreadCounter(Action):
