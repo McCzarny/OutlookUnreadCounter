@@ -19,10 +19,24 @@
         <select class="sdpi-item-value" id="account" setting="account" placeholder="Choose account" onchange="account_changed()">
         </select>
     </div>
+
     <div class="sdpi-item" label="Extra info content">
         <div class="sdpi-item-label">Include extra information</div>
         <select class="sdpi-item-value" id="extra_info" setting="extra_info" placeholder="Choose extra info" onchange="extra_info_changed()">
         </select>
+    </div>
+
+    <div type="checkbox" class="sdpi-item">
+        <div class="sdpi-item-label">Animate Extra Info</div>
+        <div class="sdpi-item-value">
+            <div class="sdpi-item-child">
+                <input class="sdpi-item-value" id="animate_extra_info" type="checkbox" onchange="animate_changed()" 
+                     >
+                <label for="animate_extra_info" class="sdpi-item-label">
+                    <span></span>
+                </label>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -44,9 +58,11 @@
     const ACCOUNTS_KEY = 'accounts'
     const EXTRA_INFO_KEY = 'extra_info'
     const EXTRA_INFO_STATES_KEY = 'extra_info_states'
+    const ANIMATE_EXTRA_INFO_KEY = 'animate_extra_info'
 
     const account_el = document.getElementById(ACCOUNT_KEY)
     const extra_info_el = document.getElementById(EXTRA_INFO_KEY)
+    const animate_extra_info_el = document.getElementById(ANIMATE_EXTRA_INFO_KEY)
 
     function account_changed() {
         console.log('account_changed', account_el.value);
@@ -57,6 +73,12 @@
     function extra_info_changed() {
         console.log('extra_info_changed', extra_info_el.value);
         settings[EXTRA_INFO_KEY] = extra_info_el.value
+        $PI.setSettings(settings);
+    }
+
+    function animate_changed() {
+        console.log('animate_changed', animate_extra_info_el.checked);
+        settings[ANIMATE_EXTRA_INFO_KEY] = animate_extra_info_el.checked
         $PI.setSettings(settings);
     }
 
@@ -75,6 +97,12 @@
         {
             update_select_options(extra_info_el, extra_info_options, extra_info_selected)
         }
+
+        let animate_extra_info_checked = settings[ANIMATE_EXTRA_INFO_KEY]
+        if (animate_extra_info_checked !== undefined)
+        {
+            animate_extra_info_el.checked = animate_extra_info_checked
+        }
     }
 
     account_el.addEventListener('change', () => {
@@ -85,6 +113,11 @@
     extra_info_el.addEventListener('change', () => {
         console.log('extra_info_el.value changed', extra_info_el.value);
         extra_info_changed();
+    });
+
+    animate_extra_info_el.addEventListener('change', () => {
+        console.log('animate_extra_info_el.checked changed', animate_extra_info_el.checked);
+        animate_changed();
     });
 
     let settings
