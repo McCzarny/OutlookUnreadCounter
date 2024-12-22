@@ -10,11 +10,27 @@ def main():
     pi = PropertyInspector(
         action_uuid="com.mcczarny.outlookunreadcounter.unreadcounter",
         elements=[
-            Message(
-                uid="my_message",
-                heading="Example message",
-                message_type=MessageTypes.INFO,
-                text="Example message text",
+            Select(
+                uid="account",
+                label="Outlook Account",
+                values=[""],
+                default_value="",
+            ),
+            Select(
+                    uid="extra_info",
+                    label="Include Extra Info",
+                    values=["None", "Subject", "Sender", "Both"],
+                    default_value="None",
+            ),
+            Checkbox(
+                label="Animate Extra Info",
+                items=[
+                    CheckboxItem(
+                        uid="animate_extra_info",
+                        label="on",
+                        checked=False,
+                    ),
+                ],
             ),
         ]
     )

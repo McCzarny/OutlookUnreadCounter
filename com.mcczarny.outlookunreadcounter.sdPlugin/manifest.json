@@ -30,7 +30,7 @@
   "Description": "Windows Outlook unread messages counter.",
   "Icon": "assets/unread_counter/envelope_open_icon",
   "Name": "Outlook Unread Counter",
-  "Version": "0.0.90",
+  "Version": "0.0.135",
   "SDKVersion": 2,
   "OS": [
     {

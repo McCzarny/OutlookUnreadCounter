@@ -1,0 +1,14 @@
+
+[project]
+name = "Outlook Unread Counter"
+authors = [
+    { name = "Maciej Czarnecki", email = "mcczarny@gmail.com" },
+]
+description = "Stream deck plugin showing Windows Outlook unread messages counter."
+readme = "README.md"
+
+[project.urls]
+"Homepage" = "https://github.com/McCzarny/OutlookUnreadCounter"
+
+[tool.black]
+line-length = 110
