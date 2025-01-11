@@ -9,6 +9,12 @@
 A Stream Deck plugin that displays the number of unread emails from Microsoft Outlook directly on your Stream Deck.
 No password needed as it uses MAPI to connect to Outlook.
 
+<p align="center">
+    <a>
+        <img src="./resources/preview.gif" alt="Outlook Unread Counter">
+    </a>
+</p>
+
 ## Features
 
 - Real-time monitoring of unread email count
