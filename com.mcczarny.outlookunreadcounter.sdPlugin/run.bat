@@ -66,5 +66,7 @@ if "%INIT_RESULT%" equ "False" (
 
 SET PYTHONPATH="%PLUGIN_CODE_DIR_PATH%"
 echo "%PYTHONPATH%"
-
-"%PLUGIN_CODE_VENV_PYTHON%" "%PLUGIN_CODE_PATH%" %*
+echo activating virtual environment using "%PLUGIN_CODE_VENV_ACTIVATE%" > "%PLUGIN_LOGS_DIR_PATH%\output.log" 2>&1
+call "%PLUGIN_CODE_VENV_ACTIVATE%"
+echo starting "%PLUGIN_CODE_VENV_PYTHON%" "%PLUGIN_CODE_PATH%" %* >> "%PLUGIN_LOGS_DIR_PATH%\output.log" 2>&1
+"%PLUGIN_CODE_VENV_PYTHON%" "%PLUGIN_CODE_PATH%" %* >> "%PLUGIN_LOGS_DIR_PATH%\output.log" 2>&1
