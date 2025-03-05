@@ -64,6 +64,7 @@ class UnreadCounter(Action):
             self.ACCOUNTS_KEY: accounts,
             self.EXTRA_INFO_KEY: self.context_data[context].extra_info,
             self.EXTRA_INFO_STATES_KEY: [state.value for state in ExtraInfoStates],
+            self.ANIMATE_EXTRA_INFO_KEY: self.context_data[context].animated,
         }
         self.set_settings(context=context, payload=payload)
         self.wake_event.set()
