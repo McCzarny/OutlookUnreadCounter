@@ -1,5 +1,6 @@
 import settings
 import threading
+import time
 
 from streamdeck_sdk import StreamDeck, Action, events_received_objs, logger, log_errors, in_separate_thread
 import win32com.client
@@ -10,6 +11,7 @@ from mail_states import MailStates
 class UnreadCounter(Action):
     UUID = "com.mcczarny.outlookunreadcounter.unreadcounter"
     MAIL_COUNT_UPDATE_INTERVAL: float = 10
+    LONG_PRESS_DURATION: float = 1.0  # Duration in seconds for long press
     ACCOUNT_KEY = "account"
     ACCOUNTS_KEY = "accounts"
     EXTRA_INFO_KEY = "extra_info"
@@ -22,6 +24,7 @@ class UnreadCounter(Action):
     monitor_outlook = None
     context = ""
     context_data: dict[str, ContextData] = {}  # Will store ContextData objects
+    key_press_times: dict[str, int] = {} # Track when keys were pressed
 
     def set_accounts_settings(self, context: str, settings: dict):
         logger.debug(f"[{context}] set_accounts_settings: {settings}")
@@ -61,6 +64,7 @@ class UnreadCounter(Action):
             self.ACCOUNTS_KEY: accounts,
             self.EXTRA_INFO_KEY: self.context_data[context].extra_info,
             self.EXTRA_INFO_STATES_KEY: [state.value for state in ExtraInfoStates],
+            self.ANIMATE_EXTRA_INFO_KEY: self.context_data[context].animated,
         }
         self.set_settings(context=context, payload=payload)
         self.wake_event.set()
@@ -86,6 +90,16 @@ class UnreadCounter(Action):
         logger.debug(f"account: {data.account}")
         self.context_data[context].tile_visualizer.update_tile(folder)
 
+    def mark_email_as_read(self, outlook, context: str):
+        data = self.context_data[context]
+        if not data.account:
+            return
+        folder = outlook.Stores(data.account).GetDefaultFolder(6) if data.account else outlook.GetDefaultFolder(6)
+        last_unread_email = folder.Items.Restrict("[UnRead] = True").GetLast()
+        if last_unread_email:
+            last_unread_email.UnRead = False
+        self.wake_event.set()  # Trigger an update
+
     @log_errors
     def on_did_receive_settings(self, obj: events_received_objs.DidReceiveSettings):
         logger.debug(f"on_did_receive_settings: {obj.payload}")
@@ -107,11 +121,35 @@ class UnreadCounter(Action):
             self.wake_event.set()
 
     @log_errors
-    def on_key_down(self, _: events_received_objs.KeyDown):
-        pass
+    def on_key_down(self, event: events_received_objs.KeyDown):
+        self.key_press_times[event.context] = time.time()
+        # Stop the tile visualizer if it's running
+        if event.context in self.context_data:
+            self.context_data[event.context].tile_visualizer.stop()
+        
+        def check_long_press():
+            key_press_time = self.key_press_times.get(event.context)
+            time.sleep(self.LONG_PRESS_DURATION)
+            if (event.context in self.key_press_times 
+                and self.key_press_times.get(event.context) == key_press_time):
+                    self.set_title(context=event.context, title="✔️")
+        
+        # Start the check in a separate thread
+        thread = threading.Thread(target=check_long_press, daemon=True)
+        thread.start()
 
     @log_errors
-    def on_key_up(self, _: events_received_objs.KeyUp):
+    def on_key_up(self, event: events_received_objs.KeyUp):
+        if event.context in self.key_press_times:
+            current_time = time.time()
+            press_time = self.key_press_times.get(event.context)
+            if press_time and (current_time - press_time) >= self.LONG_PRESS_DURATION:
+                try:
+                    self.mark_email_as_read(self.outlook, event.context)
+                except Exception as err:
+                    logger.exception("Error marking emails as read")
+            del self.key_press_times[event.context]
+        
         self.wake_event.set()
 
     @in_separate_thread(daemon=True)
@@ -122,6 +160,9 @@ class UnreadCounter(Action):
         while True:
             self.wake_event.wait(timeout=self.MAIL_COUNT_UPDATE_INTERVAL)
             for context in list(self.context_data.keys()):
+                if context in self.key_press_times:
+                    # Skip updating the tile if the key is being held down
+                    continue
                 data = self.context_data.get(context)
                 try:
                     logger.debug(f"run_monitoring: {context} {data.account}")
