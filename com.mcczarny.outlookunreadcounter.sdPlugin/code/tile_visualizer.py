@@ -168,6 +168,11 @@ class AnimatedExtraInfoVisualizer(ExtraInfoVisualizer):
         else:
             self.set_state(MailStates.UNREAD)
             last_unread_email = folder.Items.Restrict("[UnRead] = True").GetLast()
+            # Sometimes Outlook shows an unread counter > 0, but there are no unread emails.
+            # Maybe it's caused by sync errors, because the unread message appears after a few minutes.
+            if not ("SenderName" in dir(last_unread_email) and "Subject" in dir(last_unread_email)):
+                super().update_tile(folder)
+                return
             sender = last_unread_email.SenderName
             subject = last_unread_email.Subject
             self.animation = self.TileAnimation(self.set_title, unread_count, sender, subject)

@@ -123,20 +123,31 @@ class UnreadCounter(Action):
     @log_errors
     def on_key_down(self, event: events_received_objs.KeyDown):
         self.key_press_times[event.context] = time.time()
+        # Stop the tile visualizer if it's running
+        if event.context in self.context_data:
+            self.context_data[event.context].tile_visualizer.stop()
+        
+        def check_long_press():
+            key_press_time = self.key_press_times.get(event.context)
+            time.sleep(self.LONG_PRESS_DURATION)
+            if (event.context in self.key_press_times 
+                and self.key_press_times.get(event.context) == key_press_time):
+                    self.set_title(context=event.context, title="✔️")
+        
+        # Start the check in a separate thread
+        thread = threading.Thread(target=check_long_press, daemon=True)
+        thread.start()
 
     @log_errors
     def on_key_up(self, event: events_received_objs.KeyUp):
-        current_time = time.time()
-        press_time = self.key_press_times.get(event.context, current_time)
-        press_duration = current_time - press_time
-        
-        if press_duration >= self.LONG_PRESS_DURATION:
-            try:
-                self.mark_email_as_read(self.outlook, event.context)
-            except Exception as err:
-                logger.exception("Error marking emails as read")
-        
         if event.context in self.key_press_times:
+            current_time = time.time()
+            press_time = self.key_press_times.get(event.context)
+            if press_time and (current_time - press_time) >= self.LONG_PRESS_DURATION:
+                try:
+                    self.mark_email_as_read(self.outlook, event.context)
+                except Exception as err:
+                    logger.exception("Error marking emails as read")
             del self.key_press_times[event.context]
         
         self.wake_event.set()
@@ -149,6 +160,9 @@ class UnreadCounter(Action):
         while True:
             self.wake_event.wait(timeout=self.MAIL_COUNT_UPDATE_INTERVAL)
             for context in list(self.context_data.keys()):
+                if context in self.key_press_times:
+                    # Skip updating the tile if the key is being held down
+                    continue
                 data = self.context_data.get(context)
                 try:
                     logger.debug(f"run_monitoring: {context} {data.account}")
